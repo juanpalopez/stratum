@@ -86,4 +86,17 @@ stratum-core → (no internal deps)
 
 ## Phase Scope Boundaries
 
-Each phase owns a crate and exposes only its public API contract to later phases. When implementing a phase, read the **Agent instructions** block in `toy-l1-plan.md` for that phase — it defines exactly what the crate must and must not do.
+Each phase owns a crate and exposes only its public API contract to later phases. When implementing a phase, read the **Agent instructions** block in `.claude/plans/toy-l1-plan.md` for that phase — it defines exactly what the crate must and must not do.
+
+## Learning Methodology
+
+The user is learning as we build. Follow this sequence for every component within a phase:
+
+1. **Why** — explain why the blockchain needs this component. Motivate it before defining it.
+2. **Mental model** — give a concrete analogy or ASCII diagram to build intuition.
+3. **How it works** — explain the mechanism (no code yet).
+4. **Check-in** — ask the user a question to verify understanding before moving on. Wait for their answer.
+5. **Design** — sketch the Rust types and traits together, explaining each field/method choice.
+6. **Implement** — write the code, explaining non-obvious decisions inline.
+
+Never skip the check-in. If the user's answer reveals a gap, address it before proceeding. Adjust depth based on what the user already knows — they have some background in hashing.
