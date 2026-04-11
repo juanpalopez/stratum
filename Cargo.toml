@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "crates/stratum-core",
+    "crates/stratum-state",
+    "crates/stratum-network",
+    "crates/stratum-consensus",
+    "crates/stratum-mempool",
+    "crates/stratum-vm",
+    "crates/stratum-rpc",
+    "crates/stratum-node",
+    "crates/stratum-cli",
+    "crates/stratum-explorer",
+]
+resolver = "2"

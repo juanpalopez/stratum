@@ -1,0 +1,19 @@
+/target
+Cargo.lock
+*.pdb
+
+# Data directories (sled DBs, keystores)
+data/
+*.db
+
+# Local plans
+.claude/plans/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
