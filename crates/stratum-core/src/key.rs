@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn address_from_byts() {
+    fn address_from_bytes() {
         let private_key = PrivateKey::generate();
         let public_key = private_key.public_key();
         let address_1 = public_key.to_address();
