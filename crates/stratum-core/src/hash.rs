@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::utils::fmt_hex;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Hash([u8; 32]);
 
@@ -19,10 +21,7 @@ impl Hash {
 
 impl fmt::Display for Hash {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for byte in self.as_bytes() {
-            write!(f, "{:02x}", byte)?;
-        }
-        Ok(())
+        fmt_hex(self.as_bytes(), f)
     }
 }
 
