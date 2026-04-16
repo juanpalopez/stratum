@@ -19,7 +19,7 @@ Stratum is a learning-oriented Layer 1 blockchain implemented from scratch in Ru
 
 ## Stack
 
-Rust · tokio · libp2p · sled · ed25519-dalek · blake3 · borsh · jsonrpsee · ratatui
+Rust · tokio · libp2p · sled · secp256k1 · blake3 · borsh · jsonrpsee · ratatui
 
 ## Status
 
