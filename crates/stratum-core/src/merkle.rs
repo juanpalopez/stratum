@@ -107,6 +107,19 @@ impl MerkleTree {
     }
 }
 
+impl MerkleProof {
+    pub fn verify(&self, leaf_hash: Hash, root: Hash) -> bool {
+        let mut cur_hash = leaf_hash;
+        for sibling in &self.siblings {
+            cur_hash = match sibling.1 {
+                Side::Left => MerkleTree::hash_pair(&sibling.0, &cur_hash),
+                Side::Right => MerkleTree::hash_pair(&cur_hash, &sibling.0),
+            };
+        }
+        return cur_hash == root;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -207,5 +220,49 @@ mod tests {
         let proof = tree.prove(2);
 
         assert_eq!(proof.siblings, vec![(layer1_left_sibling, Side::Left)]);
+    }
+
+    #[test]
+    fn test_verify_accepts_valid_proof_for_every_leaf() {
+        let leaves = leaves_from(&["tx1", "tx2", "tx3", "tx4", "tx5"]);
+        let tree = MerkleTree::build(&leaves);
+        let root = tree.root();
+
+        for (i, leaf) in leaves.iter().enumerate() {
+            let proof = tree.prove(i);
+            assert!(proof.verify(*leaf, root), "leaf {i} should verify");
+        }
+    }
+
+    #[test]
+    fn test_verify_single_leaf_tree() {
+        let leaf = Hash::of(b"only-tx");
+        let tree = MerkleTree::build(&[leaf]);
+
+        let proof = tree.prove(0);
+
+        assert!(proof.verify(leaf, tree.root()));
+    }
+
+    #[test]
+    fn test_verify_rejects_wrong_leaf_hash() {
+        let leaves = leaves_from(&["tx1", "tx2", "tx3", "tx4"]);
+        let tree = MerkleTree::build(&leaves);
+
+        let proof = tree.prove(1);
+        let wrong_leaf = Hash::of(b"not-tx2");
+
+        assert!(!proof.verify(wrong_leaf, tree.root()));
+    }
+
+    #[test]
+    fn test_verify_rejects_wrong_root() {
+        let leaves = leaves_from(&["tx1", "tx2", "tx3", "tx4"]);
+        let tree = MerkleTree::build(&leaves);
+
+        let proof = tree.prove(0);
+        let wrong_root = Hash::of(b"not-the-root");
+
+        assert!(!proof.verify(leaves[0], wrong_root));
     }
 }
