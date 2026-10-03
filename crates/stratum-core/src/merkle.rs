@@ -1,5 +1,8 @@
 use crate::hash::Hash;
 
+const LEAF_PREFIX: u8 = 0x00;
+const NODE_PREFIX: u8 = 0x01;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     Left,
@@ -39,11 +42,19 @@ impl MerkleTree {
             .expect("MerkleTree always has at least one layer")[0]
     }
 
+    fn hash_leaf(leaf: &Hash) -> Hash {
+        let mut tagged_hash = [0u8; 33];
+        tagged_hash[0] = LEAF_PREFIX;
+        tagged_hash[1..].copy_from_slice(leaf.as_bytes());
+        Hash::of(&tagged_hash)
+    }
+
     fn hash_pair(left: &Hash, right: &Hash) -> Hash {
-        let mut concatenated_hash = [0u8; 64];
-        concatenated_hash[..32].copy_from_slice(left.as_bytes());
-        concatenated_hash[32..].copy_from_slice(right.as_bytes());
-        return Hash::of(&concatenated_hash);
+        let mut concatenated_hash = [0u8; 65];
+        concatenated_hash[0] = NODE_PREFIX;
+        concatenated_hash[1..33].copy_from_slice(left.as_bytes());
+        concatenated_hash[33..].copy_from_slice(right.as_bytes());
+        Hash::of(&concatenated_hash)
     }
 
     fn next_layer(layer: &[Hash]) -> Vec<Hash> {
@@ -68,7 +79,7 @@ impl MerkleTree {
             };
         }
 
-        let mut layers = vec![leaves.to_vec()];
+        let mut layers: Vec<Vec<Hash>> = vec![leaves.iter().map(Self::hash_leaf).collect()];
 
         while layers.last().unwrap().len() != 1 {
             let cur_layer = layers.last().unwrap();
@@ -109,7 +120,7 @@ impl MerkleTree {
 
 impl MerkleProof {
     pub fn verify(&self, leaf_hash: Hash, root: Hash) -> bool {
-        let mut cur_hash = leaf_hash;
+        let mut cur_hash = MerkleTree::hash_leaf(&leaf_hash);
         for sibling in &self.siblings {
             cur_hash = match sibling.1 {
                 Side::Left => MerkleTree::hash_pair(&sibling.0, &cur_hash),
@@ -128,6 +139,10 @@ mod tests {
         strs.iter().map(|s| Hash::of(s.as_bytes())).collect()
     }
 
+    fn tagged_pair(left: &Hash, right: &Hash) -> Hash {
+        MerkleTree::hash_pair(&MerkleTree::hash_leaf(left), &MerkleTree::hash_leaf(right))
+    }
+
     #[test]
     fn test_merkle_tree_empty_leaves_returns_default() {
         let empty_leaves: Vec<Hash> = Vec::new();
@@ -139,7 +154,7 @@ mod tests {
     fn test_merkle_tree_single_leaf_root_is_the_leaf() {
         let leaf = Hash::of(b"tx1");
         let merkle_tree = MerkleTree::build(&[leaf]);
-        assert_eq!(merkle_tree.root(), leaf);
+        assert_eq!(merkle_tree.root(), MerkleTree::hash_leaf(&leaf));
     }
 
     #[test]
@@ -200,13 +215,16 @@ mod tests {
     fn test_prove_four_leaves_returns_expected_siblings_for_index_2() {
         let leaves = leaves_from(&["tx1", "tx2", "tx3", "tx4"]);
         let tree = MerkleTree::build(&leaves);
-        let layer1_left_sibling = MerkleTree::hash_pair(&leaves[0], &leaves[1]);
+        let layer1_left_sibling = tagged_pair(&leaves[0], &leaves[1]);
 
         let proof = tree.prove(2);
 
         assert_eq!(
             proof.siblings,
-            vec![(leaves[3], Side::Right), (layer1_left_sibling, Side::Left)]
+            vec![
+                (MerkleTree::hash_leaf(&leaves[3]), Side::Right),
+                (layer1_left_sibling, Side::Left)
+            ]
         );
     }
 
@@ -214,7 +232,7 @@ mod tests {
     fn test_prove_promoted_leaf_of_odd_tree_has_one_sibling() {
         let leaves = leaves_from(&["tx1", "tx2", "tx3"]);
         let tree = MerkleTree::build(&leaves);
-        let layer1_left_sibling = MerkleTree::hash_pair(&leaves[0], &leaves[1]);
+        let layer1_left_sibling = tagged_pair(&leaves[0], &leaves[1]);
 
         // leaves[2] is the lone unpaired leaf, promoted unchanged into layer 1.
         let proof = tree.prove(2);
