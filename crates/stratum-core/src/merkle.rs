@@ -25,14 +25,23 @@ impl Side {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MerkleTree {
     layers: Vec<Vec<Hash>>,
 }
 
+#[derive(Debug)]
 pub struct MerkleProof {
     leaf_index: usize,
     siblings: Vec<(Hash, Side)>,
+}
+
+impl Default for MerkleTree {
+    fn default() -> Self {
+        Self {
+            layers: vec![vec![Self::hash_leaf(&Hash::of(b""))]],
+        }
+    }
 }
 
 impl MerkleTree {
@@ -63,20 +72,18 @@ impl MerkleTree {
         for chunk in layer.chunks(2) {
             match chunk {
                 [left, right] => new_layer.push(Self::hash_pair(left, right)),
-                [single] => new_layer.push(single.clone()),
+                [single] => new_layer.push(*single),
                 _ => unreachable!(),
             }
         }
 
-        return new_layer;
+        new_layer
     }
 
     pub fn build(leaves: &[Hash]) -> Self {
         // If empty return sentinel tree
         if leaves.is_empty() {
-            return Self {
-                layers: vec![vec![Hash::of(b"")]],
-            };
+            return Self::default();
         }
 
         let mut layers: Vec<Vec<Hash>> = vec![leaves.iter().map(Self::hash_leaf).collect()];
@@ -147,7 +154,8 @@ mod tests {
     fn test_merkle_tree_empty_leaves_returns_default() {
         let empty_leaves: Vec<Hash> = Vec::new();
         let merkle_tree = MerkleTree::build(&empty_leaves);
-        assert_eq!(merkle_tree.root(), Hash::of(b""));
+        let empty_hash = Hash::of(b"");
+        assert_eq!(merkle_tree.root(), MerkleTree::hash_leaf(&empty_hash));
     }
 
     #[test]
