@@ -20,3 +20,33 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+
+  lint:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install rustfmt and clippy
+      run: rustup component add rustfmt clippy
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+    - name: Run clippy
+      run: cargo clippy --all-targets -- -D warnings
+
+  release-build:
+    if: github.event_name == 'push'
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build release binaries
+      run: cargo build --release --bin stratum-cli --bin stratum-node
+    - name: Upload binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: stratum-binaries
+        path: |
+          target/release/stratum-cli
+          target/release/stratum-node

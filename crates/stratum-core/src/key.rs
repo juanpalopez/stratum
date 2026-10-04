@@ -1,6 +1,6 @@
 use secp256k1::{
-    ecdsa::{RecoverableSignature, RecoveryId},
     Message, PublicKey as Secp256k1PublicKey, Secp256k1, SecretKey,
+    ecdsa::{RecoverableSignature, RecoveryId},
 };
 use std::fmt;
 
@@ -184,7 +184,9 @@ mod tests {
         let message_hash = Hash::of(b"transfer 50 tokens to Bob");
 
         let sig = private_key.sign(message_hash.as_bytes());
-        let recovered = sig.recover(message_hash.as_bytes()).expect("recovery failed");
+        let recovered = sig
+            .recover(message_hash.as_bytes())
+            .expect("recovery failed");
 
         assert_eq!(recovered, public_key);
     }
@@ -198,7 +200,9 @@ mod tests {
         let tampered = Hash::of(b"transfer 9999 tokens to Eve");
 
         let sig = private_key.sign(original.as_bytes());
-        let recovered = sig.recover(tampered.as_bytes()).expect("recovery produced a key");
+        let recovered = sig
+            .recover(tampered.as_bytes())
+            .expect("recovery produced a key");
 
         // Recovery succeeds (it always produces *some* key) but the key won't match
         assert_ne!(recovered, public_key);
