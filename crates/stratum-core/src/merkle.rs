@@ -59,6 +59,10 @@ impl MerkleTree {
         self.leaf_count
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.leaf_count == 0
+    }
+
     fn hash_leaf(leaf: &Hash) -> Hash {
         let mut tagged_hash = [0u8; 33];
         tagged_hash[0] = LEAF_PREFIX;
@@ -135,6 +139,10 @@ impl MerkleTree {
 }
 
 impl MerkleProof {
+    pub fn leaf_index(&self) -> usize {
+        self.leaf_index
+    }
+
     pub fn verify(&self, leaf_hash: Hash, root: Hash) -> bool {
         let mut cur_hash = MerkleTree::hash_leaf(&leaf_hash);
         for sibling in &self.siblings {
@@ -143,7 +151,7 @@ impl MerkleProof {
                 Side::Right => MerkleTree::hash_pair(&cur_hash, &sibling.0),
             };
         }
-        return cur_hash == root;
+        cur_hash == root
     }
 }
 
