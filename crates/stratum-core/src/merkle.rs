@@ -2,6 +2,8 @@ use crate::hash::Hash;
 
 const LEAF_PREFIX: u8 = 0x00;
 const NODE_PREFIX: u8 = 0x01;
+const SENTINEL: &[u8] = b"";
+const ZERO_COUNT: usize = 0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
@@ -28,6 +30,7 @@ impl Side {
 #[derive(Debug)]
 pub struct MerkleTree {
     layers: Vec<Vec<Hash>>,
+    leaf_count: usize,
 }
 
 #[derive(Debug)]
@@ -39,7 +42,8 @@ pub struct MerkleProof {
 impl Default for MerkleTree {
     fn default() -> Self {
         Self {
-            layers: vec![vec![Self::hash_leaf(&Hash::of(b""))]],
+            layers: vec![vec![Self::hash_leaf(&Hash::of(SENTINEL))]],
+            leaf_count: ZERO_COUNT,
         }
     }
 }
@@ -49,6 +53,10 @@ impl MerkleTree {
         self.layers
             .last()
             .expect("MerkleTree always has at least one layer")[0]
+    }
+
+    pub fn len(&self) -> usize {
+        self.leaf_count
     }
 
     fn hash_leaf(leaf: &Hash) -> Hash {
@@ -86,6 +94,7 @@ impl MerkleTree {
             return Self::default();
         }
 
+        let leaf_count = leaves.len();
         let mut layers: Vec<Vec<Hash>> = vec![leaves.iter().map(Self::hash_leaf).collect()];
 
         while layers.last().unwrap().len() != 1 {
@@ -94,11 +103,11 @@ impl MerkleTree {
             layers.push(next_layer);
         }
 
-        Self { layers }
+        Self { layers, leaf_count }
     }
 
     pub fn prove(&self, leaf_index: usize) -> MerkleProof {
-        assert!(leaf_index < self.layers[0].len(), "Leaf is out of index");
+        assert!(leaf_index < self.len(), "Leaf is out of index");
         let mut siblings: Vec<(Hash, Side)> = Vec::new();
 
         let mut cur_leaf_idx = leaf_index;
@@ -154,8 +163,16 @@ mod tests {
     fn test_merkle_tree_empty_leaves_returns_default() {
         let empty_leaves: Vec<Hash> = Vec::new();
         let merkle_tree = MerkleTree::build(&empty_leaves);
-        let empty_hash = Hash::of(b"");
+        let empty_hash = Hash::of(SENTINEL);
         assert_eq!(merkle_tree.root(), MerkleTree::hash_leaf(&empty_hash));
+        assert_eq!(merkle_tree.len(), ZERO_COUNT);
+    }
+
+    #[test]
+    #[should_panic(expected = "Leaf is out of index")]
+    fn test_prove_on_empty_tree_panics() {
+        let tree = MerkleTree::build(&[]);
+        tree.prove(0);
     }
 
     #[test]
@@ -168,6 +185,7 @@ mod tests {
     #[test]
     fn test_merkle_tree_four_leaves_root_differs_from_any_leaf() {
         let leaves = leaves_from(&["tx1", "tx2", "tx3", "tx4"]);
+        let leaves_count: usize = 4;
 
         let merkle_tree = MerkleTree::build(&leaves);
         let root = merkle_tree.root();
@@ -175,6 +193,7 @@ mod tests {
         for leaf in &leaves {
             assert_ne!(root, *leaf);
         }
+        assert_eq!(merkle_tree.len(), leaves_count);
     }
 
     #[test]
